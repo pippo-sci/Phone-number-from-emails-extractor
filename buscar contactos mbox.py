@@ -2,16 +2,15 @@
 """
 Created on Fri Jan 26 15:55:42 2018
 
-@author: Felipe
+@author: Pippo Ramos
 """
 
 import mailbox
 from email.header import decode_header
 import re
 
-mbox = mailbox.mbox('C:/Users/Felipe/Desktop/Scrap m21/Todo el correo, incluido Spam y Papelera-001.mbox')
-
-def getbody(message): #getting plain text 'email body'
+# function to getting plain text 'email body'
+def getbody(message): 
     body = None
     if message.is_multipart():
         for part in message.walk():
@@ -26,47 +25,51 @@ def getbody(message): #getting plain text 'email body'
     return body
 
 
-mbox = mailbox.mbox('C:/Users/Felipe/Desktop/Scrap m21/Todo el correo, incluido Spam y Papelera-001.mbox')
-regex = re.compile('()[0-9]{4}')
-asunto = []
-origen = []
-texto = []
-exp = decode_header(mbox[9025]['subject'])[0][1]
+mbox = mailbox.mbox('~/Todo el correo, incluido Spam y Papelera-001.mbox')
 
+#get lists with subject, from and body text from emails
+
+subject = []
+from = []
+text = []
+exp = decode_header(mbox[9025]['subject'])[0][1] # Getting 'unkown-8bit' error to avoid it from a sample
 
 for message in mbox:   
     if message['subject'] is not None:
         sub, code = decode_header(message['subject'])[0]
     else:
-        sub = 'vacio'
+        sub = 'empty'
         code = None
     if code is not None:
         if code == exp:
-            subject = sub.decode('utf-8')
+            subject0 = sub.decode('utf-8')
         else:
-            subject = sub.decode(code)
+            subject0 = sub.decode(code)
     else:
         subject = sub
-    asunto.append(subject)
-    origen.append(message['From'])
+    subject.append(subject0)
+    from.append(message['From'])
     txt = getbody(message)
     if txt is not None:
-        texto.append(getbody(message).decode('latin-1'))
+        text.append(getbody(message).decode('latin-1'))
     else:
-        texto.append('vacio')
+        text.append('empty')
+
+# Turn the data into dataframe to analyse it 
 
 import pandas as pd
 
 df = pd.DataFrame({'asunto':asunto,'origen':origen,'texto':texto})
 df2 =df[df['asunto'].str.contains('Alerta de Google')==False].copy()
 
-df2.to_csv("correos paz.csv")
+#save process in csv file
+df2.to_csv("correos.csv")
+#df2 = pd.read_csv("correos.csv")
 
-df2 = pd.read_csv("correos paz.csv")
-
-""".str.contains("hello")
+# Lets count most frequent words in subject
 import nltk
 from nltk.tokenize import word_tokenize
+from itertools import chain
 
 wt =[]
 for w in asunto:
@@ -76,22 +79,20 @@ for w in asunto:
     w3 = word_tokenize(w2)
     wt.append(w3)
 
-from itertools import chain
-
 tw2= list(chain(*wt))
 stop = nltk.corpus.stopwords.words('Spanish')
 tw3 = [w for w in tw2 if w not in stop]
 
-
 df= nltk.FreqDist(tw3)
-"""
 
-r='(\d+( |-)*)*\d{4}'
+print(df.most_common())
+
+#Found the two words before any phone number
+
+r='(\d+( |-)*)*\d{4}' #regex to locate phone numbers in most common formats in the emails
+
 
 re.search(r,texto[22222])
-
-
-
 
 for i in df2['texto']:
     if re.search(r,i):
